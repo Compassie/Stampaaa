@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StickStamp Studio</title>
+    <style>
+        :root { --accent: #ff4757; --bg: #f1f2f6; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; }
+        
+        /* Mobile Responsive Container */
+        #work-area { width: 90%; max-width: 500px; margin-top: 20px; position: relative; }
+        canvas { width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: white; cursor: crosshair; }
+
+        .controls { display: flex; gap: 10px; margin: 20px 0; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-primary { background: black; color: white; }
+        .btn-save { background: var(--accent); color: white; }
+
+        /* Stamp Library Dock */
+        #library { width: 100%; display: flex; gap: 10px; overflow-x: auto; padding: 10px; background: white; position: fixed; bottom: 0; }
+        .stamp-item { width: 60px; height: 60px; border: 2px solid #eee; border-radius: 8px; cursor: pointer; flex-shrink: 0; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+    <div id="work-area">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <input type="file" id="upload" hidden accept="image/*">
+        <button class="btn btn-primary" onclick="document.getElementById('upload').click()">Upload Photo</button>
+        <button class="btn btn-save" id="saveBtn">Save to Phone</button>
+    </div>
+
+    <div id="library">
+        </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const upload = document.getElementById('upload');
+        const library = document.getElementById('library');
+        let currentStamp = null;
+
+        // 1. Handle Background Upload
+        upload.addEventListener('change', (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // 2. Logic to "Abstract" to Stick Figure (Simplified for demo)
+        // In a full version, you'd use a filter to isolate the person and convert to vector-style paths.
+        function createStickFigureFromImage(imgSource) {
+            const offscreen = document.createElement('canvas');
+            const oCtx = offscreen.getContext('2d');
+            offscreen.width = 100; offscreen.height = 100;
+            
+            // Artistic logic: High contrast + Grayscale to mimic a "Stamp"
+            oCtx.filter = 'grayscale(100%) contrast(500%) brightness(1.2)';
+            oCtx.drawImage(imgSource, 0, 0, 100, 100);
+            
+            const stampData = offscreen.toDataURL();
+            saveToLibrary(stampData);
+        }
+
+        function saveToLibrary(dataUrl) {
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.className = 'stamp-item';
+            img.onclick = () => { currentStamp = img; };
+            library.appendChild(img);
+        }
+
+        // 3. Stamping Logic
+        canvas.addEventListener('click', (e) => {
+            if (!currentStamp) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            
+            ctx.drawImage(currentStamp, x - 50, y - 50, 100, 100);
+        });
+
+        // 4. Save to Device
+        document.getElementById('saveBtn').onclick = () => {
+            const link = document.createElement('a');
+            link.download = 'my-artistic-stick-stamp.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        };
+    </script>
+</body>
+</html>
